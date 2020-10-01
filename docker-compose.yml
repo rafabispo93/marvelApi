@@ -1,0 +1,13 @@
+version: '3'
+services:
+  web:
+    build: .
+    restart: always
+    command: python -u app.py
+    environment:
+      private_key: "0f56ea9eaad631cee9aed42478145bac470364fb"
+      public_key: "f455a0f7b332cf2db81353408eabae56"
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/marvelApi
