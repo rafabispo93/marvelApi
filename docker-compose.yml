@@ -9,5 +9,17 @@ services:
       public_key: "f455a0f7b332cf2db81353408eabae56"
     ports:
       - "5000:5000"
+    depends_on:
+      - db
     volumes:
       - .:/marvelApi
+    links:
+      - db
+  db:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - .:/marvelApi
+    environment:
+        - MONGO_INITDB_DATABASE=marvel

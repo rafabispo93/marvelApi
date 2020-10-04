@@ -1,10 +1,18 @@
-import requests
-import datetime
-from hashlib import md5
 from flask import Blueprint
-from config import PREFIX, BASE_URL, PRIVATE_KEY, PUBLIC_KEY, SUFFIXES
+from config import SUFFIXES, DB
 
-action_url = PREFIX+"/characters"
+import json
+from bson import ObjectId
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
+
+
+action_url = "/v1/public/characters"
 characters = Blueprint('characters', __name__, url_prefix=action_url)
 
 
@@ -13,27 +21,19 @@ characters = Blueprint('characters', __name__, url_prefix=action_url)
 @characters.route('/<char_id>/<suffix>')
 def index(char_id, suffix):
     try:
-        timestamp = str(datetime.datetime.now().timestamp())
-        hash_ = timestamp + PRIVATE_KEY + PUBLIC_KEY
-        params = {
-            "ts": timestamp,
-            "apikey": PUBLIC_KEY,
-            "hash": md5(hash_.encode()).hexdigest()
-        }
-        url = BASE_URL+action_url
-
         if char_id:
-            url = url + "/"+char_id
-            if suffix in SUFFIXES:
-                url = url + "/"+suffix
+            res_by_id = DB.get_by_id(int(char_id))
+            if suffix in SUFFIXES and res_by_id:
+                return res_by_id[suffix], 200
             elif suffix:
                 return "Not implemented", 501
-
-        request = requests.get(url, params)
-        if request.status_code == 200:
-            return request.json()["data"], request.status_code
-        return request.json(), request.status_code
-
+            if res_by_id:
+                return json.loads(JSONEncoder().encode(res_by_id)), 200
+            return "Character not found", 200
+        res = DB.get_all()
+        if res:
+            return JSONEncoder().encode(res), 200
+        return "No characters found"
     except Exception as err:
         raise Exception(err)
         return "Internal server error", 500
